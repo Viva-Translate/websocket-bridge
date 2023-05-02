@@ -1,0 +1,18 @@
+services:
+  websocket-bridge:
+    restart: unless-stopped
+    image: websocket-bridge:latest
+    networks:
+      - riva-net
+    ports:
+      - 8009:8009
+      - 8443:8443
+    environment:
+      - RIVA_API_URL=riva-speech:50051
+      - PORT=8009
+      - HTTPS_PORT=8443
+    volumes:
+      - ./certificates:/opt/riva/websocket-bridge/certificates
+networks:
+  riva-net:
+    external: true

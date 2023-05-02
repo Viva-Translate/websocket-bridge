@@ -8,6 +8,7 @@ const resampleWorker = './resampler.js';
 var peer;
 var username = 'Test_speaker_' + id.toString();
 var peer_username;
+var audio_context;
 var localStream;
 var sampleRate;
 var rivaRunning = false;
@@ -196,24 +197,6 @@ function showASRTranscript(speaker, annotations, text) {
     $("#transcription_area").tooltip({ selector: '[data-toggle=tooltip]' });
 }
 
-/**
- * Starts the request of the microphone
- *
- * @param {Object} callbacks
- */
-function requestLocalAudio(callbacks) {
-    // Monkeypatch for crossbrowser getUserMedia
-    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-
-    // Request audio and video
-    // Try getting video, if it fails then go for audio only
-    navigator.getUserMedia({ audio: true, video: false }, callbacks.success,
-        function () { // error -- can't access video. Try audio only
-            navigator.getUserMedia({ audio: true }, callbacks.success, callbacks.error);
-        }
-    );
-}
-
 $(document).ready(function () {
     // Activate tooltips
     $("body").tooltip({ selector: '[data-mdb-toggle=tooltip]' });
@@ -221,19 +204,27 @@ $(document).ready(function () {
     /**
      * Request browser audio and video, and show the local stream
      */
-    requestLocalAudio({
-        success: function (stream) {
+    navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 16000,
+            sampleSize: 16,
+        },
+    }).then(
+        (stream) => {
             localStream = stream;
             audio_context = new AudioContext();
             sampleRate = audio_context.sampleRate;
             console.log("Sample rate of local audio: " + sampleRate)
         },
-        error: function (err) {
+        (err) => {
             bootbox.alert("Cannot get access to your microphone.")
                 .find(".bootbox-close-button").addClass("float-end");
             console.error(err);
         }
-    });
+    );
 
     // Allow us to launch Riva with only the local speaker
     document.getElementById('riva-btn').removeAttribute("disabled");
